@@ -6,22 +6,33 @@ It uses the Occupational Employment and Wage Statistics ([OEWS](https://www.bls.
 
 ## Results
 
-This table provides the estimates in current dollars.
+This table provides the person-month resource cost estimates in current dollars using two potential approaches.
 
-| Year | Person Month Resource Cost |
-|:----:|:--------------------------:|
-| 2008 |         $17,816.32         |
-| 2009 |         $19,135.57         |
-| 2010 |         $19,568.47         |
-| 2011 |         $19,629.74         |
-| 2012 |         $19,486.19         |
-| 2013 |         $19,958.34         |
-| 2014 |         $20,412.84         |
-| 2015 |         $20,897.19         |
-| 2016 |         $21,206.11         |
-| 2017 |         $21,412.43         |
-| 2018 |         $21,871.03         |
-| 2019 |         $21,877.73         |
+| Year | BLS/SUT-IG | NIPA/KLEMS-EIPS |
+|:----:|:----------:|:---------------:|
+| 2008 |  $19,751   |     $21,411     |
+| 2009 |  $20,447   |     $22,170     |
+| 2010 |  $21,210   |     $22,554     |
+| 2011 |  $21,378   |     $22,816     |
+| 2012 |  $20,887   |     $22,949     |
+| 2013 |  $21,166   |     $24,136     |
+| 2014 |  $21,309   |     $24,992     |
+| 2015 |  $20,062   |     $25,863     |
+| 2016 |  $20,787   |     $26,479     |
+| 2017 |  $20,928   |     $27,018     |
+| 2018 |  $21,289   |     $27,289     |
+| 2019 |  $21,025   |     $27,393     |
+
+## Code Organization
+- `scripts/OEWS.jl` => `data/oews_15-1256.csv`
+- `scripts/BLS-series.jl` => `data/bls_salary_wages_to_total_compensation.csv`
+- `scripts/ComponentsValueAdded.jl` => `data/comp_of_va.csv`
+- `scripts/ResourceCosts.jl` => `data/person_monthly_resource_cost.csv`
+
+## TODO
+
+- Pull NIPA tables using the BEA API
+
 
 ## Similar ways to compute resource costs
 

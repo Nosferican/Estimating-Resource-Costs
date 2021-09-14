@@ -17,7 +17,8 @@ using HTTP: HTTP, request, URI
 using JSON3: JSON3
 using XLSX: XLSX, readxlsx, readtable, readdata, sheetnames
 using CSV: CSV
-using DataFrames
+using DataFrames: DataFrames, DataFrame, combine, groupby, ByRow, dropmissing!,
+				  transform!, select!, select, leftjoin
 const BEA_API_KEY = get(ENV, "api_bea_token", "")
 
 #=
@@ -41,9 +42,9 @@ all_industries = convert(Vector{String}, vec(components_of_va[2]["B11:B96"]))
 # Read the data for each variable and format it together with the industry and year
 components_of_va_data =
 	DataFrame(reduce(hcat,
-	       			 vec([isa(x, Number) ? x : missing
-			   		       for x in components_of_va[tblnames[k]][range_for_industries_2008_2019]])
-		                 for k in sort(collect(keys(tblnames)))),
+					 vec([isa(x, Number) ? x : missing
+					 	  for x in components_of_va[tblnames[k]][range_for_industries_2008_2019]])
+						  for k in sort(collect(keys(tblnames)))),
 			  sort!(collect(keys(tblnames))))
 components_of_va_data[!,:industry] .= repeat(all_industries, outer = length(2008:2019))
 components_of_va_data[!,:year] .= repeat(2008:2019, inner = length(all_industries))
@@ -93,6 +94,7 @@ transform!(industries, :naics => ByRow(x -> isnothing(x) ? missing : x.match) =>
 dropmissing!(industries)
 transform!(industries, :Desc => ByRow(x -> replace(x, " (A,Q)" => "")) => :industry)
 select!(industries, [:naics, :industry])
+industries = combine(groupby(industries, :naics), first)
 #=
 Join the data so we can obtain the relevant information at the NAICS2 level.
 =#
@@ -106,12 +108,6 @@ select!(naics,
 		 "Taxes on production and imports, less subsidies"])
 dropmissing!(naics)
 #=
-We then look at the OEWS data to find the appropiate industry levels.
-=#
-oews = CSV.read(joinpath("data", "oews_15-1256.csv"), DataFrame)
-oews_industries = sort!(unique!(oews[!,:naics]))
-setdiff(oews_industries, naics[!,:naics])
-#=
 We find that we need to handle these four cases:
 - "31-33" use 31
 - "44-45" use 44
@@ -122,13 +118,11 @@ bea_oews = Dict("31" => "31-33", "44" => "44-45", "48" => "48-49")
 #=
 Compute simple salary and wages to resource cost factors per industry (NAICS2).
 =#
-resource_cost_factors = select(naics, ["year", "naics", "Wages and salaries", "Value Added"])
-transform!(resource_cost_factors,
-	["Value Added", "Wages and salaries"] => ByRow(/) => :y_w)
-filter!(x -> startswith(x, "31"), unique(resource_cost_factors[!,:naics]))
-transform!(resource_cost_factors,
+comp_of_va = select(naics, ["year", "naics", "Wages and salaries", "Compensation of employees", "Value Added"])
+transform!(comp_of_va, ["Compensation of employees", "Wages and salaries"] => ByRow(/) => :l_w)
+transform!(comp_of_va,
 		   :naics => ByRow(x -> get(bea_oews, string(x), x)),
 		   renamecols = false)
-select!(resource_cost_factors, [:year, :naics, :y_w])
+select!(comp_of_va, [:year, :naics, :l_w])
 # setdiff(oews_industries, resource_cost_factors[!,:naics])
-CSV.write(joinpath("data", "resource_cost_factors.csv"), resource_cost_factors)
+CSV.write(joinpath("data", "comp_of_va.csv"), comp_of_va)
